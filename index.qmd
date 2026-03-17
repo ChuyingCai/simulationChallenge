@@ -179,7 +179,7 @@ Describe the distribution of final account balances across 100 simulations. Repo
 #| fig-cap: "Distribution of final balances across 100 simulations"
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
+from matplotlib.ticker import MaxNLocator, FuncFormatter
 
 np.random.seed(42)
 buy_in = 30_000
@@ -200,18 +200,22 @@ median_final = round(np.median(final_balances))
 prob_above_buyin = (final_balances > buy_in).mean()
 prob_above_pct = round(prob_above_buyin * 100, 2)
 
-# Histogram with labels
+# Histogram with labels（截掉最极端的右侧 5% 以放大主要分布）
+p95 = np.percentile(final_balances, 95)
+main_balances = final_balances[final_balances <= p95]
+
 fig, ax = plt.subplots(figsize=(6.5, 4))
-ax.hist(final_balances, bins=25, color="steelblue", edgecolor="white", alpha=0.8, label="Final balance")
+ax.hist(main_balances, bins=20, color="steelblue", edgecolor="white", alpha=0.8, label="Final balance (≤95th pct)")
 ax.axvline(x=buy_in, color="red", linestyle="--", linewidth=2, label=f"Buy-in: ${buy_in:,}")
 ax.axvline(x=mean_final, color="green", linestyle="-", linewidth=1.5, label=f"Mean: ${mean_final:,}")
 ax.axvline(x=median_final, color="orange", linestyle="-", linewidth=1.5, label=f"Median: ${median_final:,}")
 
 ax.set_xlabel("Final balance ($)")
 ax.set_ylabel("Count (number of simulations)")
-ax.set_title("Distribution of final balances after 100 simulations (35 periods each)")
-ax.xaxis.set_major_locator(MaxNLocator(integer=True))
-ax.ticklabel_format(style="plain", axis="x")
+ax.set_title("Distribution of final balances after 100 simulations (35 periods each)\n(Zoomed to 95th percentile of final balances)")
+ax.xaxis.set_major_locator(MaxNLocator(nbins=8))
+ax.xaxis.set_major_formatter(FuncFormatter(lambda x, pos: f"${x:,.0f}"))
+plt.setp(ax.get_xticklabels(), rotation=45, ha="right")
 ax.legend(loc="upper right")
 ax.grid(True, alpha=0.3, axis="y")
 
