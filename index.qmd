@@ -9,73 +9,6 @@ execute:
   eval: true
 ---
 
-# 🎲 Simulation Challenge - Starter Template
-
-:::: {.callout-important}
-## 📋 What You Need To Do
-
-- [ ] Fork [this repository](https://github.com/flyaflya/simulationChallenge) to create `simulationChallenge` in your GitHub
-- [ ] Clone locally and open in Cursor
-- [ ] Write your analysis in this `index.qmd`
-- [ ] Render to HTML (`quarto render` or Render button)
-- [ ] Push HTML to your repo and enable GitHub Pages
-- [ ] Share your site: `https://[your-username].github.io/simulationChallenge/`
-::::
-
-:::: {.callout-note}
-## 🐍 Python Environment Setup
-
-Before rendering, create a fresh virtual environment and install the required packages:
-
-1. Press `Ctrl+Shift+P` to open the Command Palette
-2. Type **"Python: Select Interpreter"** and select it
-3. Click **"+ Create Virtual Environment..."**
-4. Choose **Venv**
-5. Select your Python installation (e.g., Python 3.12)
-6. Wait for the environment to be created and activated
-
-Then open a terminal and install dependencies:
-
-**Windows:**
-```bash
-py -m pip install jupyter matplotlib pandas daft-pgm
-```
-
-**Mac:**
-```bash
-python3 -m pip install jupyter matplotlib pandas daft-pgm
-```
-
-This ensures you have everything needed for Quarto rendering and the DAG visualizations.
-::::
-
-:::: {.callout-warning}
-## ⚠️ AI Partnership Required
-Use Cursor AI for speed, but ensure you understand and can explain the results in your own words.  Verify cursor's calculations as investment simulation is tricky.
-::::
-
-:::: {.callout-important}
-## 📊 Grading Criteria
-
-- **Sections 1–4:** Required. These sections can earn up to **90%** of the grade.
-- **Sections 5–6:** Optional stretch. Strong, well-supported work here can bring your score up to **100%**.
-
-**Your grade depends on narrative clarity and insight, not just correct calculations.** Present a persuasive argument for or against the investment, supported by your analysis.
-::::
-
-:::: {.callout-tip}
-## 📝 How to Present Your Analysis
-
-Your analysis should read as a **persuasive narrative** arguing for or against the investment. Use data and calculations to support your argument, but present findings **inline in prose**—not as raw code output.
-
-- **Round figures** for readability (whole dollars for balances, 2-3 decimals for probabilities)
-- **Interpret results** in your own words outside of code chunks
-- Use Quarto inline code (e.g., `` `{{python}} round(ev, 0)` ``) or type values directly
-
-**Example:** Instead of printing `36000.0` from code, write:
-
-> *"After one flip, the expected account balance is $36,000—a 20% increase over the initial $30,000 buy-in. This positive expected value suggests the game is favorable; if you can place this bet infinite times, you will on average end up with $6,000 gain for each time you bet $30,000.  Note: this is an interpretation for a slighlty different game."*
-::::
 
 ## The Investment Game (Brief)
 
@@ -133,13 +66,52 @@ Explain whether the expected value of your account balance after one flip is gre
 
 ```{python}
 #| label: q1-expected-value-py
+#| echo: false
+import numpy as np
+import daft
 
-# Compute the expected value after one coin flip.
-# Round monetary values to whole dollars; percentages to 1 decimal.
-# Present your findings OUTSIDE this chunk in narrative prose.
-# Example: "The expected value is $36,000, a 20.0% gain over the buy-in."
+# Game parameters
+buy_in = 30_000
+p_heads = 0.5   # Bernoulli(0.5) fair coin
+mult_heads = 1.50   # +50% if heads
+mult_tails = 0.60   # -40% if tails (keep 60%)
 
+# Outcomes (one flip)
+balance_if_heads = buy_in * mult_heads
+balance_if_tails = buy_in * mult_tails
+ev_one_flip = p_heads * balance_if_heads + (1 - p_heads) * balance_if_tails
+gain_dollars = ev_one_flip - buy_in
+gain_pct = (gain_dollars / buy_in) * 100
+
+# Round for display: whole dollars; probability as percentage, 2 decimals
+ev_rounded = round(ev_one_flip)
+gain_rounded = round(gain_dollars)
+gain_pct_rounded = round(gain_pct, 1)
+p_heads_pct = round(p_heads * 100, 2)  # 50.00%
+
+evDAG = daft.PGM(dpi=100, alternate_style="outer")
+
+# Buy-in
+evDAG.add_node("W0", "Buy-in\n$W_0 = 30{,}000$", x=2, y=2.2, aspect=4, alternate=True, plot_params={"facecolor": "aliceblue"})
+# Coin flip
+evDAG.add_node("C", f"Coin\n$C \\sim \\text{{Bernoulli}}({p_heads_pct:.2f}\\%)$", x=2, y=1.0, aspect=4, scale=1.4, plot_params={"facecolor": "aliceblue"})
+# Outcomes
+evDAG.add_node("Wh", f"Heads: $W = 45{{,}}000$\n(prob. {p_heads_pct:.2f}%)", x=0.4, y=0.2, aspect=4.2, scale=1.2, plot_params={"facecolor": "honeydew"})
+evDAG.add_node("Wt", f"Tails: $W = 18{{,}}000$\n(prob. {p_heads_pct:.2f}%)", x=3.6, y=0.2, aspect=4.2, scale=1.2, plot_params={"facecolor": "mistyrose"})
+evDAG.add_node("EV", "Expected value\n$E[W_1] = 31{,}500$\n(Gain 5.0% of buy-in)", x=2, y=-0.6, aspect=5, scale=1.3, alternate=True, plot_params={"facecolor": "lavender"})
+
+evDAG.add_edge("W0", "C")
+evDAG.add_edge("C", "Wh")
+evDAG.add_edge("C", "Wt")
+evDAG.add_edge("Wh", "EV")
+evDAG.add_edge("Wt", "EV")
+evDAG.show()
 ```
+
+**Narrative**
+
+After one flip, the expected account balance is $31,500- a 5% increase over the initial $30,000 buy-in. 50
+% of the chance is that you will end up with $45,000, and 50% of the chance is that you will end up with $18,000. In general, you only have a 50% chance to make a profit. I would not recommend buying into this one time game because it is not a good investment.
 
 ### 2) Single Simulation Over Time (Narrative + Plot)
 
@@ -147,16 +119,55 @@ Narrate and visualize what happens to your account balance over the course of on
 
 ```{python}
 #| label: q2-single-sim-py
-#| fig-cap: "Single simulation path of account balance"
+#| echo: false
+import matplotlib.pyplot as plt
 
 # Simulate one path from $30,000 over N periods.
-# Use matplotlib (Object Oriented style) for the time-series plot.
-# Set a random seed for reproducibility.
-# Round final balance to whole dollars in your narrative.
-# Present your interpretation OUTSIDE this chunk—describe the trajectory
-# and whether you would be satisfied with this outcome.
+np.random.seed(42)
+buy_in = 30_000
+mult_heads = 1.50
+mult_tails = 0.60
+N = 35
+balances = [buy_in]
+flips = []
+for _ in range(N - 1):
+    flip = np.random.binomial(1, 0.5)
+    flips.append(flip)
+    mult = mult_heads if flip == 1 else mult_tails
+    balances.append(balances[-1] * mult)
+final_balance = round(balances[-1])
 
+# Daft diagram: two situations (Heads/Tails) and result of this run
+resultDAG = daft.PGM(dpi=100, alternate_style="outer")
+resultDAG.add_node("W0", "Start\n$W_0 = 30{,}000$", x=2, y=2.2, aspect=3.5, alternate=True, plot_params={"facecolor": "aliceblue"})
+resultDAG.add_node("C", "Each period:\ncoin flip", x=2, y=1.2, aspect=3, scale=1.1, plot_params={"facecolor": "aliceblue"})
+resultDAG.add_node("H", "Heads: +50%\n$W \\rightarrow 1.5 \\times W$", x=0.35, y=0.25, aspect=4, scale=1.1, plot_params={"facecolor": "honeydew"})
+resultDAG.add_node("T", "Tails: -40%\n$W \\rightarrow 0.6 \\times W$", x=3.65, y=0.25, aspect=4, scale=1.1, plot_params={"facecolor": "mistyrose"})
+resultDAG.add_node("R", f"Result of this run\nFinal balance: ${final_balance:,}", x=2, y=-0.55, aspect=4.5, scale=1.2, alternate=True, plot_params={"facecolor": "lavender"})
+resultDAG.add_edge("W0", "C")
+resultDAG.add_edge("C", "H")
+resultDAG.add_edge("C", "T")
+resultDAG.add_edge("H", "R")
+resultDAG.add_edge("T", "R")
+resultDAG.show()
+
+# Use matplotlib (Object Oriented style) for the time-series plot.
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.plot(range(N), balances, color="steelblue", linewidth=2)
+ax.axhline(y=buy_in, color="gray", linestyle="--", alpha=0.8, label="Buy-in $30,000")
+ax.set_xlabel("Period")
+ax.set_ylabel("Account balance ($)")
+ax.set_title("Single simulation: account balance over time")
+ax.legend()
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
 ```
+
+**Narrative**
+
+The diagram above shows the balance changes over time. When the coin is heads, the balance increases by 50%. When the coin is tails, the balance decreases by 40%. One random sequence of such flips was simulated; the result of this run shows that after 34 years, the balance is dropped to $801, which means you lost most of your money. I would not be satisfied with this simulation outcome because it shows after 14 times of game, you begin to continuously lose money and would not gain any profit above the initial $30,000.
+
 
 ### 3) 100 Simulations: Distribution of Final Balances
 
@@ -164,16 +175,57 @@ Describe the distribution of final account balances across 100 simulations. Repo
 
 ```{python}
 #| label: q3-dist-100-py
+#| echo: false
 #| fig-cap: "Distribution of final balances across 100 simulations"
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
-# Run 100 simulations and plot a histogram of final balances.
-# Add a vertical line at $30,000 for reference.
-# Compute mean, median, and P(final > $30,000).
-# Round balances to whole dollars; probabilities to 2-3 decimals.
-# Present these statistics OUTSIDE this chunk in narrative form.
-# Example: "The median outcome was $12,345, well below the initial investment."
+np.random.seed(42)
+buy_in = 30_000
+mult_heads = 1.50
+mult_tails = 0.60
+N = 100
+final_balances = []
+for _ in range(N):
+    w = buy_in
+    for _ in range(N - 1):
+        flip = np.random.binomial(1, 0.5)
+        w = w * (mult_heads if flip == 1 else mult_tails)
+    final_balances.append(w)
 
+final_balances = np.array(final_balances)
+mean_final = round(final_balances.mean())
+median_final = round(np.median(final_balances))
+prob_above_buyin = (final_balances > buy_in).mean()
+prob_above_pct = round(prob_above_buyin * 100, 2)
+
+# Histogram with labels
+fig, ax = plt.subplots(figsize=(9, 5))
+ax.hist(final_balances, bins=25, color="steelblue", edgecolor="white", alpha=0.8, label="Final balance")
+ax.axvline(x=buy_in, color="red", linestyle="--", linewidth=2, label=f"Buy-in: ${buy_in:,}")
+ax.axvline(x=mean_final, color="green", linestyle="-", linewidth=1.5, label=f"Mean: ${mean_final:,}")
+ax.axvline(x=median_final, color="orange", linestyle="-", linewidth=1.5, label=f"Median: ${median_final:,}")
+
+ax.set_xlabel("Final balance ($)")
+ax.set_ylabel("Count (number of simulations)")
+ax.set_title("Distribution of final balances after 100 simulations (35 periods each)")
+ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+ax.ticklabel_format(style="plain", axis="x")
+ax.legend(loc="upper right")
+ax.grid(True, alpha=0.3, axis="y")
+
+# Add text box for probability above buy-in
+textstr = f"P(final > $30,000) = {prob_above_buyin:.2f} ({prob_above_pct}%)"
+ax.text(0.98, 0.5, textstr, transform=ax.transAxes, fontsize=10, verticalalignment="center", horizontalalignment="right",
+        bbox=dict(boxstyle="round", facecolor="wheat", alpha=0.8))
+plt.tight_layout()
+plt.show()
 ```
+
+**Narrative**
+
+Across 100 simulations, the mean final balance is $ 48,921 and the median is $72. The probability of ending with more than the initial $30,000 is 9%. After running 100 times of game, you only have a 9% chance to make a profit. I would not be satisfied with these outcomes because even mean is higher than the initial $30,000, the probability is too low to make a profit. And the median is much lower than the mean, which means most of the time you will lose money.
 
 ### 4) Probability Balance > $30,000 at Age 75 (Original Game)
 
@@ -181,13 +233,72 @@ Report the probability that your final balance exceeds $30,000. Interpret what t
 
 ```{python}
 #| label: q4-prob-original-py
+#| echo: false
+#| fig-cap: "Probability that balance exceeds $30,000 over 75 periods"
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
-# Using the 100 simulations, estimate P(final > $30,000).
-# Round the probability to 2-3 decimal places.
-# Present this result OUTSIDE this chunk in narrative form.
-# Interpret what this probability means for your investment decision.
+np.random.seed(42)
+buy_in = 30_000
+mult_heads = 1.50
+mult_tails = 0.60
+N = 75
+n_sims = 100
 
+# Run 100 simulations, each for 75 periods; store full path
+paths = []
+for _ in range(n_sims):
+    w = buy_in
+    path = [w]
+    for _ in range(N - 1):
+        flip = np.random.binomial(1, 0.5)
+        w = w * (mult_heads if flip == 1 else mult_tails)
+        path.append(w)
+    paths.append(path)
+paths = np.array(paths)
+
+# At each period t: P(balance > $30,000)
+prob_above_by_period = (paths > buy_in).mean(axis=0)
+final_balances = paths[:, -1]
+mean_final = round(final_balances.mean())
+median_final = round(np.median(final_balances))
+prob_above_buyin = (final_balances > buy_in).mean()
+prob_above_pct = round(prob_above_buyin * 100, 2)
+
+# Time-series: P(balance > $30,000) over 75 periods
+fig, ax = plt.subplots(figsize=(9, 5))
+ax.plot(range(N), prob_above_by_period, color="steelblue", linewidth=2, marker="o", markersize=3, markevery=5)
+ax.axhline(y=0.5, color="gray", linestyle="--", alpha=0.7, label="50%")
+ax.set_xlabel("Period")
+ax.set_ylabel("P(balance > $30,000)")
+ax.set_title("Probability that balance exceeds $30,000 over 75 periods (100 simulations)")
+ax.set_ylim(-0.05, 1.05)
+ax.legend(loc="upper right")
+ax.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.show()
+
+# Time-series: balance change over time (all paths + mean path)
+fig2, ax2 = plt.subplots(figsize=(9, 5))
+for i in range(n_sims):
+    ax2.plot(range(N), paths[i], color="steelblue", alpha=0.2, linewidth=0.8)
+ax2.plot(range(N), paths.mean(axis=0), color="darkred", linewidth=2, label="Mean balance")
+ax2.axhline(y=buy_in, color="gray", linestyle="--", linewidth=1.5, label=f"Buy-in ${buy_in:,}")
+ax2.set_xlabel("Period")
+ax2.set_ylabel("Account balance ($)")
+ax2.set_title("Account balance over 75 periods (100 simulations)")
+ax2.legend(loc="upper right")
+ax2.grid(True, alpha=0.3)
+ax2.ticklabel_format(style="plain", axis="y")
+ax2.yaxis.set_major_locator(MaxNLocator(integer=True))
+plt.tight_layout()
+plt.show()
 ```
+
+**Narrative**
+
+After running 100 simualtion, the probability that the balance exceeds $30,000 is below 50%. It countinue to decrease over time. The time-series plot shows the slightly balance change over time. I would not recommend playing this game because the probability is too low to make a profit.
 
 ### 5) Modified Strategy (Bet Exactly 25% Each Round)
 
@@ -195,42 +306,90 @@ Instead of having the full balance at risk with each coin flip, assume only 25% 
 
 ```{python}
 #| label: q5-modified-25pct-py
-#| fig-cap: "Modified strategy distribution (bet 25% each round)"
+#| echo: false
+#| fig-cap: "Modified strategy (25% at risk) vs original: distribution of final balances"
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.ticker import MaxNLocator
 
-# Implement the modified game where only 25% of your balance is at risk each flip.
-# Run 100 simulations and plot the distribution of final balances.
-# Estimate P(final > $30,000) and compare to the original strategy.
-# Visually compare outcome distributions of both strategies.
-# Round balances to whole dollars; probabilities to 2-3 decimals.
-# Present your comparison and recommendation OUTSIDE this chunk in narrative form.
+np.random.seed(99)
+buy_in = 30_000
+mult_heads = 1.50
+mult_tails = 0.60
+# Modified: only 25% at risk → 75% safe + 25%*(1.5 or 0.6)
+mult_heads_25 = 0.75 + 0.25 * 1.50   # 1.125
+mult_tails_25 = 0.75 + 0.25 * 0.60   # 0.90
+N = 75
+n_sims = 100
 
+# Original game: 100 simulations, 75 periods
+final_orig = []
+for _ in range(n_sims):
+    w = buy_in
+    for _ in range(N - 1):
+        flip = np.random.binomial(1, 0.5)
+        w = w * (mult_heads if flip == 1 else mult_tails)
+    final_orig.append(w)
+final_orig = np.array(final_orig)
+
+# Modified strategy: 25% at risk each round
+np.random.seed(99)  # same sequence of flips for fair comparison
+final_mod = []
+for _ in range(n_sims):
+    w = buy_in
+    for _ in range(N - 1):
+        flip = np.random.binomial(1, 0.5)
+        w = w * (mult_heads_25 if flip == 1 else mult_tails_25)
+    final_mod.append(w)
+final_mod = np.array(final_mod)
+
+# Stats: modified strategy
+mean_mod = round(final_mod.mean())
+median_mod = round(np.median(final_mod))
+prob_above_mod = (final_mod > buy_in).mean()
+prob_above_mod_pct = round(prob_above_mod * 100, 2)
+# Original (same seed)
+prob_above_orig = (final_orig > buy_in).mean()
+prob_above_orig_pct = round(prob_above_orig * 100, 2)
+
+# Plot 1: Distribution of modified strategy only
+fig, ax = plt.subplots(figsize=(8, 4))
+ax.hist(final_mod, bins=25, color="steelblue", edgecolor="white", alpha=0.8, label="Modified (25% at risk)")
+ax.axvline(x=buy_in, color="red", linestyle="--", linewidth=2, label=f"Buy-in ${buy_in:,}")
+ax.axvline(x=mean_mod, color="green", linestyle="-", linewidth=1.5, label=f"Mean: ${mean_mod:,}")
+ax.set_xlabel("Final balance ($)")
+ax.set_ylabel("Count")
+ax.set_title("Modified strategy: distribution of final balances (100 sims, 75 periods)")
+ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+ax.ticklabel_format(style="plain", axis="x")
+ax.legend(loc="upper right")
+ax.grid(True, alpha=0.3, axis="y")
+plt.tight_layout()
+plt.show()
+
+# Plot 2: Visual comparison — original vs modified (overlaid histograms)
+fig2, ax2 = plt.subplots(figsize=(9, 5))
+ax2.hist(final_orig, bins=30, color="coral", alpha=0.6, edgecolor="white", label=f"Original (100% at risk), P(>30k)={prob_above_orig:.2f}")
+ax2.hist(final_mod, bins=30, color="steelblue", alpha=0.6, edgecolor="white", label=f"Modified (25% at risk), P(>30k)={prob_above_mod:.2f}")
+ax2.axvline(x=buy_in, color="red", linestyle="--", linewidth=2, label=f"Buy-in ${buy_in:,}")
+ax2.set_xlabel("Final balance ($)")
+ax2.set_ylabel("Count")
+ax2.set_title("Original vs modified strategy: distribution of final balances (100 sims, 75 periods)")
+ax2.xaxis.set_major_locator(MaxNLocator(integer=True))
+ax2.ticklabel_format(style="plain", axis="x")
+ax2.legend(loc="upper right")
+ax2.grid(True, alpha=0.3, axis="y")
+plt.tight_layout()
+plt.show()
 ```
+
+**Narrative**
+
+Under the modified strategy, the mean final balance is $85,428. It is higher than the original game. The probability of ending with more than the initial $30,000 is 73%. Compared to the original game, it is less risky and has a higher upside. I would recommend playing this game instead of the original game.
 
 ### 6) The Kelly Criterion
 
-Explain what the Kelly Criterion is and how it relates to the modified strategy from Section 5. Does the Kelly Criterion support your recommendation?
+The Kelly Criterion is a mathematical formula used to determine how much of your capital to risk on a bet or investment in order to maximize long-term growth. By calculating the original game, the Kelly Criterion would not suggest palying this game because the result is −0.5. Only use 25% of the balance to gamble each time, the Kelly Criterion would suggest playing this game because the result is 0.65%, it means you balance will slowly increase over time. It is much safer than the original game.
 
 
-## Professional Presentation
-
-- **Clear narrative:** tell the story succinctly (aim for a 1–5 minute read)
-- **Focus on insights:** risk profiles, counter-intuitive results, practical implications
-- **Professional style:** concise writing, clean visuals, hide code where appropriate (`echo: false`)
-- **Human interpretation:** explain what results mean for real decisions
-
-## Submission Checklist ✅
-
-- [ ] Quarto document written with narrative and results
-- [ ] Rendered to HTML successfully
-- [ ] Repository `simulationChallenge` created on GitHub
-- [ ] HTML committed and pushed
-- [ ] GitHub Pages enabled (Deploy from a branch → main → /(root))
-- [ ] Site accessible at `https://[your-username].github.io/simulationChallenge/`
-
-## Tips
-
-- Set random seeds for reproducibility
-- Use object-oriented plotting with `matplotlib`
-- Keep figures readable and labeled; prefer professional styling
-- Commit early and often; render locally before pushing
 
