@@ -201,7 +201,7 @@ prob_above_buyin = (final_balances > buy_in).mean()
 prob_above_pct = round(prob_above_buyin * 100, 2)
 
 # Histogram with labels
-fig, ax = plt.subplots(figsize=(9, 5))
+fig, ax = plt.subplots(figsize=(6.5, 4))
 ax.hist(final_balances, bins=25, color="steelblue", edgecolor="white", alpha=0.8, label="Final balance")
 ax.axvline(x=buy_in, color="red", linestyle="--", linewidth=2, label=f"Buy-in: ${buy_in:,}")
 ax.axvline(x=mean_final, color="green", linestyle="-", linewidth=1.5, label=f"Mean: ${mean_final:,}")
@@ -267,7 +267,7 @@ prob_above_buyin = (final_balances > buy_in).mean()
 prob_above_pct = round(prob_above_buyin * 100, 2)
 
 # Time-series: P(balance > $30,000) over 75 periods
-fig, ax = plt.subplots(figsize=(9, 5))
+fig, ax = plt.subplots(figsize=(7, 4))
 ax.plot(range(N), prob_above_by_period, color="steelblue", linewidth=2, marker="o", markersize=3, markevery=5)
 ax.axhline(y=0.5, color="gray", linestyle="--", alpha=0.7, label="50%")
 ax.set_xlabel("Period")
@@ -280,7 +280,7 @@ plt.tight_layout()
 plt.show()
 
 # Time-series: balance change over time (all paths + mean path)
-fig2, ax2 = plt.subplots(figsize=(9, 5))
+fig2, ax2 = plt.subplots(figsize=(7, 4))
 for i in range(n_sims):
     ax2.plot(range(N), paths[i], color="steelblue", alpha=0.2, linewidth=0.8)
 ax2.plot(range(N), paths.mean(axis=0), color="darkred", linewidth=2, label="Mean balance")
@@ -353,7 +353,7 @@ prob_above_orig = (final_orig > buy_in).mean()
 prob_above_orig_pct = round(prob_above_orig * 100, 2)
 
 # Plot 1: Distribution of modified strategy only
-fig, ax = plt.subplots(figsize=(8, 4))
+fig, ax = plt.subplots(figsize=(7, 4))
 ax.hist(final_mod, bins=25, color="steelblue", edgecolor="white", alpha=0.8, label="Modified (25% at risk)")
 ax.axvline(x=buy_in, color="red", linestyle="--", linewidth=2, label=f"Buy-in ${buy_in:,}")
 ax.axvline(x=mean_mod, color="green", linestyle="-", linewidth=1.5, label=f"Mean: ${mean_mod:,}")
@@ -368,7 +368,7 @@ plt.tight_layout()
 plt.show()
 
 # Plot 2: Visual comparison — original vs modified (overlaid histograms)
-fig2, ax2 = plt.subplots(figsize=(9, 5))
+fig2, ax2 = plt.subplots(figsize=(6.5, 4))
 ax2.hist(final_orig, bins=30, color="coral", alpha=0.6, edgecolor="white", label=f"Original (100% at risk), P(>30k)={prob_above_orig:.2f}")
 ax2.hist(final_mod, bins=30, color="steelblue", alpha=0.6, edgecolor="white", label=f"Modified (25% at risk), P(>30k)={prob_above_mod:.2f}")
 ax2.axvline(x=buy_in, color="red", linestyle="--", linewidth=2, label=f"Buy-in ${buy_in:,}")
